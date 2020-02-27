@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.zh.android.swipemenulayoutsample.R;
 import com.zh.android.swipemenulayoutsample.SwipeMenuLayout;
+import com.zh.android.swipemenulayoutsample.model.ListItemModel;
 
 import me.drakeet.multitype.ItemViewBinder;
 
@@ -19,11 +20,15 @@ import me.drakeet.multitype.ItemViewBinder;
  * <b>@author:</b> zihe <br>
  * <b>Description:</b> 条目类 <br>
  */
-public class ListItemViewBinder extends ItemViewBinder<String, ListItemViewBinder.ViewHolder> {
+public class ListItemViewBinder extends ItemViewBinder<ListItemModel, ListItemViewBinder.ViewHolder> {
     /**
      * 回调
      */
     private Callback mCallback;
+    /**
+     * 渲染菜单状态回调
+     */
+    private OnRenderMenuStateCallback mRenderMenuStateCallback;
 
     public interface Callback {
         /**
@@ -47,8 +52,18 @@ public class ListItemViewBinder extends ItemViewBinder<String, ListItemViewBinde
         void onCloseMenu(int position);
     }
 
-    public ListItemViewBinder(Callback callback) {
+    public interface OnRenderMenuStateCallback {
+        /**
+         * 菜单是否是打开的
+         *
+         * @param position 条目位置
+         */
+        boolean isMenuOpen(int position);
+    }
+
+    public ListItemViewBinder(Callback callback, OnRenderMenuStateCallback renderMenuStateCallback) {
         mCallback = callback;
+        mRenderMenuStateCallback = renderMenuStateCallback;
     }
 
     @NonNull
@@ -58,14 +73,38 @@ public class ListItemViewBinder extends ItemViewBinder<String, ListItemViewBinde
     }
 
     @Override
-    protected void onBindViewHolder(@NonNull ViewHolder holder, @NonNull String item) {
-        final int position = getPosition(holder);
-        holder.vContent.setText(item);
+    protected void onBindViewHolder(@NonNull final ViewHolder holder, @NonNull ListItemModel item) {
+        holder.vContent.setText(item.getContent());
+        //恢复开、关状态
+        if (mRenderMenuStateCallback.isMenuOpen(getPosition(holder))) {
+            holder.vSwipeMenuLayout.setMenuOpen(false);
+        } else {
+            holder.vSwipeMenuLayout.setMenuClose(false);
+        }
+        //滑动菜单开、关监听
+        holder.vSwipeMenuLayout.addOnMenuStateChangeListener(new SwipeMenuLayout.OnMenuStateChangeListener() {
+            @Override
+            public void onOpenMenu() {
+                if (mCallback != null) {
+                    final int position = getPosition(holder);
+                    mCallback.onOpenMenu(position);
+                }
+            }
+
+            @Override
+            public void onCloseMenu() {
+                if (mCallback != null) {
+                    final int position = getPosition(holder);
+                    mCallback.onCloseMenu(position);
+                }
+            }
+        });
         //未读
         holder.vUnread.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (mCallback != null) {
+                    final int position = getPosition(holder);
                     mCallback.onClickUnread(position);
                 }
             }
@@ -75,23 +114,8 @@ public class ListItemViewBinder extends ItemViewBinder<String, ListItemViewBinde
             @Override
             public void onClick(View v) {
                 if (mCallback != null) {
+                    final int position = getPosition(holder);
                     mCallback.onClickDelete(position);
-                }
-            }
-        });
-        //滑动菜单开、关监听
-        holder.vSwipeMenuLayout.setOnSwipeMenuChangeListener(new SwipeMenuLayout.OnSwipeMenuChangeListener() {
-            @Override
-            public void onOpenMenu() {
-                if (mCallback != null) {
-                    mCallback.onOpenMenu(position);
-                }
-            }
-
-            @Override
-            public void onCloseMenu() {
-                if (mCallback != null) {
-                    mCallback.onCloseMenu(position);
                 }
             }
         });

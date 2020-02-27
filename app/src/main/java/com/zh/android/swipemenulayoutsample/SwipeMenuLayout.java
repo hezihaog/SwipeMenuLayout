@@ -11,6 +11,9 @@ import androidx.annotation.Nullable;
 import androidx.core.view.ViewCompat;
 import androidx.customview.widget.ViewDragHelper;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 /**
  * <b>Package:</b> com.zh.android.swipemenulayoutsample <br>
  * <b>Create Date:</b> 2020/2/26  3:03 PM <br>
@@ -31,13 +34,25 @@ public class SwipeMenuLayout extends FrameLayout {
      */
     private ViewDragHelper mViewDragHelper;
     /**
-     * 菜单改变监听
+     * 打开菜单的操作
      */
-    private OnSwipeMenuChangeListener mSwipeMenuChangeListener;
+    private List<Action> mMenuOpenActions = new CopyOnWriteArrayList<>();
     /**
-     * 是否打开菜单
+     * 关闭菜单的操作
      */
-    private boolean isOpenMenu;
+    private List<Action> mMenuCloseActions = new CopyOnWriteArrayList<>();
+    /**
+     * 菜单状态改变监听
+     */
+    private OnMenuStateChangeListener mMenuStateChangeListener;
+    /**
+     * 触摸按下时的X坐标
+     */
+    private float mDownX;
+    /**
+     * 触摸按下时的Y坐标
+     */
+    private float mDownY;
 
     public SwipeMenuLayout(Context context) {
         this(context, null);
@@ -117,17 +132,16 @@ public class SwipeMenuLayout extends FrameLayout {
                 //处理开、关菜单回调
                 int contentViewLeft = vContentView.getLeft();
                 int menuViewWidth = vMenuView.getWidth();
-                //菜单开，由于这个方法移动一下，就回调一次，所以会重复，必须加上标志位
-                if ((contentViewLeft == -menuViewWidth) && !isOpenMenu) {
-                    isOpenMenu = true;
-                    if (mSwipeMenuChangeListener != null) {
-                        mSwipeMenuChangeListener.onOpenMenu();
+                //由于这个方法移动一下，就回调一次，所以会重复，必须加上标志位
+                if ((contentViewLeft == -menuViewWidth) && !isOpenMenu()) {
+                    //菜单开
+                    for (Action action : mMenuOpenActions) {
+                        action.onActionFinish();
                     }
-                } else if (contentViewLeft == 0 && isOpenMenu) {
+                } else if (contentViewLeft == 0 && isOpenMenu()) {
                     //菜单关
-                    isOpenMenu = false;
-                    if (mSwipeMenuChangeListener != null) {
-                        mSwipeMenuChangeListener.onCloseMenu();
+                    for (Action action : mMenuCloseActions) {
+                        action.onActionFinish();
                     }
                 }
             }
@@ -148,10 +162,10 @@ public class SwipeMenuLayout extends FrameLayout {
                 float fullOpenWidth = contentViewWidth - halfMenuWidth;
                 //判断方向，向左滑动到打开，打开菜单
                 if (vContentView.getRight() < fullOpenWidth) {
-                    openMenu();
+                    openMenu(true);
                 } else {
                     //其他情况，关闭菜单
-                    closeMenu();
+                    closeMenu(true);
                 }
             }
         });
@@ -179,12 +193,41 @@ public class SwipeMenuLayout extends FrameLayout {
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
+        //判断是否可以滑动，可以滑动则拦截，自己消费事件
+        if (!Manager.get().isCanSwipe(this)) {
+            return true;
+        }
         //将onInterceptTouchEvent委托给ViewDragHelper
         return mViewDragHelper.shouldInterceptTouchEvent(ev);
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        Manager manager = Manager.get();
+        //当触摸时，如果不是当前自己并没有打开菜单，则关闭上一个菜单先（只能一个打开）
+        if (!manager.isOpenInstance(SwipeMenuLayout.this)) {
+            manager.closeOpenInstance(true);
+        }
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mDownX = event.getX();
+                mDownY = event.getY();
+                break;
+            case MotionEvent.ACTION_MOVE:
+                float moveX = event.getX();
+                float moveY = event.getY();
+                //横向滑动距离
+                float distanceX = Math.abs(moveX - mDownX);
+                //纵向滑动距离
+                float distanceY = Math.abs(moveY - mDownY);
+                //横向滑动得多，让外层不拦截事件
+                if (distanceX > distanceY) {
+                    requestDisallowInterceptTouchEvent(true);
+                }
+                break;
+            default:
+                break;
+        }
         //将onTouchEvent委托给ViewDragHelper
         mViewDragHelper.processTouchEvent(event);
         return true;
@@ -204,23 +247,100 @@ public class SwipeMenuLayout extends FrameLayout {
     /**
      * 向左移动，打开菜单
      */
-    public void openMenu() {
+    public void openMenu(boolean hasAnimation) {
+        //添加一个操作，当滚动动画结束时回调，再进行统一的处理
+        mMenuOpenActions.add(new Action() {
+            @Override
+            public void onActionFinish() {
+                mMenuOpenActions.remove(this);
+                onMenuOpenFinish();
+            }
+        });
+        setMenuOpen(hasAnimation);
+    }
+
+    /**
+     * 设置菜单开，不通知回调
+     *
+     * @param hasAnimation 是否有动画
+     */
+    public void setMenuOpen(boolean hasAnimation) {
         //让内容区域移动，向左一个菜单的距离
         int finalLeft = -vMenuView.getWidth();
-        mViewDragHelper.smoothSlideViewTo(vContentView, finalLeft, vContentView.getTop());
-        ViewCompat.postInvalidateOnAnimation(this);
+        int menuWidth = vMenuView.getWidth();
+        if (hasAnimation) {
+            mViewDragHelper.smoothSlideViewTo(vContentView, finalLeft, vContentView.getTop());
+            ViewCompat.postInvalidateOnAnimation(this);
+        } else {
+            //没有动画，直接让layout移动
+            vContentView.layout(finalLeft, getTop(), getRight(), getBottom());
+            vMenuView.layout(getRight() - menuWidth, getTop(), getRight(), getBottom());
+            //没有动画，马上结束
+            for (Action action : mMenuOpenActions) {
+                action.onActionFinish();
+            }
+        }
     }
 
     /**
      * 向右移动，关闭菜单
+     *
+     * @param hasAnimation 是否有动画
      */
-    public void closeMenu() {
-        //直接将内容区域移动到最左侧即可
-        mViewDragHelper.smoothSlideViewTo(vContentView, 0, vContentView.getTop());
-        ViewCompat.postInvalidateOnAnimation(this);
+    public void closeMenu(boolean hasAnimation) {
+        //添加一个操作，当滚动动画结束时回调，再进行统一的处理
+        mMenuCloseActions.add(new Action() {
+            @Override
+            public void onActionFinish() {
+                mMenuCloseActions.remove(this);
+                onMenuCloseFinish();
+            }
+        });
+        setMenuClose(hasAnimation);
     }
 
-    public interface OnSwipeMenuChangeListener {
+    /**
+     * 设置菜单关，不通知回调
+     *
+     * @param hasAnimation 是否有动画
+     */
+    public void setMenuClose(boolean hasAnimation) {
+        if (hasAnimation) {
+            //直接将内容区域移动到最左侧即可
+            mViewDragHelper.smoothSlideViewTo(vContentView, 0, vContentView.getTop());
+            ViewCompat.postInvalidateOnAnimation(this);
+        } else {
+            //没有动画，直接让layout移动
+            vContentView.layout(getLeft(), getTop(), getRight(), getBottom());
+            vMenuView.layout(getRight(), getTop(), getRight() + vMenuView.getWidth(), getBottom());
+            //没有动画，马上结束
+            for (Action action : mMenuCloseActions) {
+                action.onActionFinish();
+            }
+        }
+    }
+
+    /**
+     * 当菜单打开完成时调用
+     */
+    private void onMenuOpenFinish() {
+        Manager.get().holdOpenInstance(SwipeMenuLayout.this);
+        if (mMenuStateChangeListener != null) {
+            mMenuStateChangeListener.onOpenMenu();
+        }
+    }
+
+    /**
+     * 当菜单关闭完成时调用
+     */
+    private void onMenuCloseFinish() {
+        Manager.get().removeOpenInstance();
+        if (mMenuStateChangeListener != null) {
+            mMenuStateChangeListener.onCloseMenu();
+        }
+    }
+
+    public interface OnMenuStateChangeListener {
         /**
          * 当打开菜单时回调
          */
@@ -233,18 +353,94 @@ public class SwipeMenuLayout extends FrameLayout {
     }
 
     /**
-     * 设置滑动改变监听
-     *
-     * @param swipeChangeListener 监听器
+     * 一个操作
      */
-    public void setOnSwipeMenuChangeListener(OnSwipeMenuChangeListener swipeChangeListener) {
-        mSwipeMenuChangeListener = swipeChangeListener;
+    public interface Action {
+        /**
+         * 操作结束时回调
+         */
+        void onActionFinish();
+    }
+
+    /**
+     * 添加菜单状态改变监听
+     *
+     * @param listener 监听器
+     */
+    public void addOnMenuStateChangeListener(OnMenuStateChangeListener listener) {
+        mMenuStateChangeListener = listener;
     }
 
     /**
      * 是否打开了菜单
      */
     public boolean isOpenMenu() {
-        return isOpenMenu;
+        return Manager.get().isOpenInstance(this);
+    }
+
+    /**
+     * 管理器
+     */
+    public static class Manager {
+        /**
+         * 打开的布局
+         */
+        private SwipeMenuLayout mOpenInstance;
+
+        private Manager() {
+        }
+
+        private static final class SingleHolder {
+            private static final Manager INSTANCE = new Manager();
+        }
+
+        public static Manager get() {
+            return SingleHolder.INSTANCE;
+        }
+
+        /**
+         * 是否可以滑动
+         */
+        public boolean isCanSwipe(SwipeMenuLayout layout) {
+            //已经打开了，可以滑动
+            if (isOpenInstance(layout)) {
+                return true;
+            }
+            //一个都没打开，也可以滑动
+            return mOpenInstance == null;
+        }
+
+        /**
+         * 保存打开的实例
+         */
+        void holdOpenInstance(SwipeMenuLayout layout) {
+            mOpenInstance = layout;
+        }
+
+        /**
+         * 移除打开的实例
+         */
+        void removeOpenInstance() {
+            mOpenInstance = null;
+        }
+
+        /**
+         * 关闭当前打开中的条目
+         *
+         * @param hasAnimation 是否要有动画
+         */
+        public void closeOpenInstance(boolean hasAnimation) {
+            if (mOpenInstance != null) {
+                mOpenInstance.closeMenu(hasAnimation);
+                mOpenInstance = null;
+            }
+        }
+
+        /**
+         * 判断布局是否打开中
+         */
+        public boolean isOpenInstance(SwipeMenuLayout layout) {
+            return mOpenInstance == layout;
+        }
     }
 }
