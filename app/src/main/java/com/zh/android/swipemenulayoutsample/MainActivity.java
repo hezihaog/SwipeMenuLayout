@@ -16,9 +16,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.zh.android.swipemenulayoutsample.item.ListItemViewBinder;
 import com.zh.android.swipemenulayoutsample.model.ListItemModel;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import me.drakeet.multitype.Items;
 import me.drakeet.multitype.MultiTypeAdapter;
 
@@ -31,9 +28,9 @@ public class MainActivity extends AppCompatActivity {
     private Items mListItems;
     private MultiTypeAdapter mListAdapter;
     /**
-     * 位置对应菜单打开状态的映射
+     * 菜单管理器
      */
-    private Map<Integer, Boolean> mMenuOpenStateMap = new HashMap<>();
+    private SwipeMenuLayout.MenuManager mMenuManager = new SwipeMenuLayout.MenuManager();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
         }
         mListAdapter = new MultiTypeAdapter(mListItems);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        mListAdapter.register(ListItemModel.class, new ListItemViewBinder(new ListItemViewBinder.Callback() {
+        mListAdapter.register(ListItemModel.class, new ListItemViewBinder(mMenuManager, new ListItemViewBinder.Callback() {
             @Override
             public void onClickUnread(int position) {
                 toast(position + "：设置未读");
@@ -54,7 +51,6 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onClickDelete(int position) {
-                mMenuOpenStateMap.remove(position);
                 mListItems.remove(position);
                 mListAdapter.notifyItemRemoved(position);
             }
@@ -62,19 +58,21 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onOpenMenu(int position) {
                 Log.d(TAG, position + "：菜单打开");
-                mMenuOpenStateMap.put(position, true);
+                Object model = mListItems.get(position);
+                if (model instanceof ListItemModel) {
+                    ListItemModel itemModel = (ListItemModel) model;
+                    itemModel.setMenuOpen(true);
+                }
             }
 
             @Override
             public void onCloseMenu(int position) {
                 Log.d(TAG, position + "：菜单关闭");
-                mMenuOpenStateMap.put(position, false);
-            }
-        }, new ListItemViewBinder.OnRenderMenuStateCallback() {
-            @Override
-            public boolean isMenuOpen(int position) {
-                Boolean state = mMenuOpenStateMap.get(position);
-                return state != null && state;
+                Object model = mListItems.get(position);
+                if (model instanceof ListItemModel) {
+                    ListItemModel itemModel = (ListItemModel) model;
+                    itemModel.setMenuOpen(false);
+                }
             }
         }));
         recyclerView.setAdapter(mListAdapter);
@@ -96,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.option_close_menu) {
             //关闭当前已打开的菜单
-            SwipeMenuLayout.Manager.get().closeOpenInstance(true);
+            mMenuManager.closeOpenInstance();
             return true;
         }
         return super.onOptionsItemSelected(item);

@@ -22,13 +22,13 @@ import me.drakeet.multitype.ItemViewBinder;
  */
 public class ListItemViewBinder extends ItemViewBinder<ListItemModel, ListItemViewBinder.ViewHolder> {
     /**
+     * 菜单管理器
+     */
+    private SwipeMenuLayout.MenuManager mMenuManager;
+    /**
      * 回调
      */
     private Callback mCallback;
-    /**
-     * 渲染菜单状态回调
-     */
-    private OnRenderMenuStateCallback mRenderMenuStateCallback;
 
     public interface Callback {
         /**
@@ -52,18 +52,9 @@ public class ListItemViewBinder extends ItemViewBinder<ListItemModel, ListItemVi
         void onCloseMenu(int position);
     }
 
-    public interface OnRenderMenuStateCallback {
-        /**
-         * 菜单是否是打开的
-         *
-         * @param position 条目位置
-         */
-        boolean isMenuOpen(int position);
-    }
-
-    public ListItemViewBinder(Callback callback, OnRenderMenuStateCallback renderMenuStateCallback) {
+    public ListItemViewBinder(SwipeMenuLayout.MenuManager menuManager, Callback callback) {
+        mMenuManager = menuManager;
         mCallback = callback;
-        mRenderMenuStateCallback = renderMenuStateCallback;
     }
 
     @NonNull
@@ -75,11 +66,12 @@ public class ListItemViewBinder extends ItemViewBinder<ListItemModel, ListItemVi
     @Override
     protected void onBindViewHolder(@NonNull final ViewHolder holder, @NonNull ListItemModel item) {
         holder.vContent.setText(item.getContent());
+        holder.vSwipeMenuLayout.attachManager(mMenuManager);
         //恢复开、关状态
-        if (mRenderMenuStateCallback.isMenuOpen(getPosition(holder))) {
-            holder.vSwipeMenuLayout.setMenuOpen(false);
+        if (item.isMenuOpen()) {
+            holder.vSwipeMenuLayout.setMenuOpen();
         } else {
-            holder.vSwipeMenuLayout.setMenuClose(false);
+            holder.vSwipeMenuLayout.setMenuClose();
         }
         //滑动菜单开、关监听
         holder.vSwipeMenuLayout.addOnMenuStateChangeListener(new SwipeMenuLayout.OnMenuStateChangeListener() {
