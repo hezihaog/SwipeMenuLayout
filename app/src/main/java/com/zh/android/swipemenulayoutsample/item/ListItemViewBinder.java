@@ -22,13 +22,9 @@ import me.drakeet.multitype.ItemViewBinder;
  */
 public class ListItemViewBinder extends ItemViewBinder<ListItemModel, ListItemViewBinder.ViewHolder> {
     /**
-     * 菜单管理器
-     */
-    private SwipeMenuLayout.MenuManager mMenuManager;
-    /**
      * 回调
      */
-    private Callback mCallback;
+    private final Callback mCallback;
 
     public interface Callback {
         /**
@@ -52,9 +48,8 @@ public class ListItemViewBinder extends ItemViewBinder<ListItemModel, ListItemVi
         void onCloseMenu(int position);
     }
 
-    public ListItemViewBinder(SwipeMenuLayout.MenuManager menuManager, Callback callback) {
-        mMenuManager = menuManager;
-        mCallback = callback;
+    public ListItemViewBinder(Callback callback) {
+        this.mCallback = callback;
     }
 
     @NonNull
@@ -66,7 +61,6 @@ public class ListItemViewBinder extends ItemViewBinder<ListItemModel, ListItemVi
     @Override
     protected void onBindViewHolder(@NonNull final ViewHolder holder, @NonNull ListItemModel item) {
         holder.vContent.setText(item.getContent());
-        holder.vSwipeMenuLayout.attachManager(mMenuManager);
         //恢复开、关状态
         if (item.isMenuOpen()) {
             holder.vSwipeMenuLayout.setMenuOpen();

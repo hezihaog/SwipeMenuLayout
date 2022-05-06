@@ -27,10 +27,6 @@ public class MainActivity extends AppCompatActivity {
 
     private Items mListItems;
     private MultiTypeAdapter mListAdapter;
-    /**
-     * 菜单管理器
-     */
-    private SwipeMenuLayout.MenuManager mMenuManager = new SwipeMenuLayout.MenuManager();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
         }
         mListAdapter = new MultiTypeAdapter(mListItems);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        mListAdapter.register(ListItemModel.class, new ListItemViewBinder(mMenuManager, new ListItemViewBinder.Callback() {
+        mListAdapter.register(ListItemModel.class, new ListItemViewBinder(new ListItemViewBinder.Callback() {
             @Override
             public void onClickUnread(int position) {
                 toast(position + "：设置未读");
@@ -94,7 +90,10 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.option_close_menu) {
             //关闭当前已打开的菜单
-            mMenuManager.closeOpenInstance();
+            SwipeMenuLayout viewCache = SwipeMenuLayout.getViewCache();
+            if (viewCache != null) {
+                viewCache.closeMenu();
+            }
             return true;
         }
         return super.onOptionsItemSelected(item);

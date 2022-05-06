@@ -1,5 +1,6 @@
 package com.zh.android.swipemenulayoutsample;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -43,9 +44,10 @@ public class SwipeMenuLayout extends FrameLayout {
      */
     private float mDownY;
     /**
-     * 菜单管理器
+     * 保存上一个展开的菜单
      */
-    private MenuManager mMenuManager;
+    @SuppressLint("StaticFieldLeak")
+    private static SwipeMenuLayout mViewCache;
 
     public SwipeMenuLayout(Context context) {
         this(context, null);
@@ -136,7 +138,7 @@ public class SwipeMenuLayout extends FrameLayout {
                     //关闭时，菜单的左边位置
                     int closeMenuLeft = getRight();
                     //是否有一个菜单在打开
-                    boolean isOpenMenu = requireMenuManager().isOpenMenu();
+                    //boolean isOpenMenu = mViewCache != null && mViewCache.isOpenMenu();
                     //由于这个方法移动一下，就回调一次，所以会重复，必须加上标志位
                     if ((menuViewLeft == openMenuLeft)) {
                         //菜单开
@@ -174,6 +176,15 @@ public class SwipeMenuLayout extends FrameLayout {
     }
 
     @Override
+    protected void onDetachedFromWindow() {
+        if (this == mViewCache) {
+            mViewCache.closeMenu();
+            mViewCache = null;
+        }
+        super.onDetachedFromWindow();
+    }
+
+    @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
         //布局内容区域，和父View一样大小
@@ -195,16 +206,12 @@ public class SwipeMenuLayout extends FrameLayout {
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
-        //判断是否可以滑动，可以滑动则拦截，自己消费事件
-        if (!requireMenuManager().isCanSwipe(this)) {
-            if (MotionEvent.ACTION_DOWN == ev.getAction()) {
-                //当触摸时，如果不是当前自己并没有打开菜单，则关闭上一个菜单先（只能一个打开）
-                MenuManager manager = requireMenuManager();
-                if (!manager.isOpenInstance(SwipeMenuLayout.this)) {
-                    manager.closeOpenInstance();
-                }
+        if (MotionEvent.ACTION_DOWN == ev.getAction()) {
+            //当触摸时，先关闭上一个菜单
+            if (mViewCache != null) {
+                mViewCache.closeMenu();
+                return true;
             }
-            return true;
         }
         //将onInterceptTouchEvent委托给ViewDragHelper
         return mViewDragHelper.shouldInterceptTouchEvent(ev);
@@ -294,7 +301,7 @@ public class SwipeMenuLayout extends FrameLayout {
      * @param isNeedCallListener 是否需要通知监听器
      */
     private void onMenuOpenFinish(boolean isNeedCallListener) {
-        requireMenuManager().holdOpenInstance(SwipeMenuLayout.this);
+        mViewCache = this;
         if (isNeedCallListener && mMenuStateChangeListener != null) {
             mMenuStateChangeListener.onOpenMenu();
         }
@@ -306,29 +313,10 @@ public class SwipeMenuLayout extends FrameLayout {
      * @param isNeedCallListener 是否需要通知监听器
      */
     private void onMenuCloseFinish(boolean isNeedCallListener) {
-        requireMenuManager().removeOpenInstance();
+        mViewCache = null;
         if (isNeedCallListener && mMenuStateChangeListener != null) {
             mMenuStateChangeListener.onCloseMenu();
         }
-    }
-
-    /**
-     * 依附菜单管理器，使用方必须设置
-     *
-     * @param manager 管理器
-     */
-    public void attachManager(MenuManager manager) {
-        mMenuManager = manager;
-    }
-
-    /**
-     * 检查菜单管理器
-     */
-    private MenuManager requireMenuManager() {
-        if (mMenuManager == null) {
-            throw new NullPointerException("必须要调用attachManager()方法，设置菜单管理器");
-        }
-        return mMenuManager;
     }
 
     public interface OnMenuStateChangeListener {
@@ -356,66 +344,13 @@ public class SwipeMenuLayout extends FrameLayout {
      * 是否打开了菜单
      */
     public boolean isOpenMenu() {
-        return requireMenuManager().isOpenInstance(this);
+        return mViewCache != null;
     }
 
     /**
-     * 管理器
+     * 返回正在展开的SwipeMenuLayout
      */
-    public static class MenuManager {
-        /**
-         * 打开的布局
-         */
-        private SwipeMenuLayout mOpenInstance;
-
-        /**
-         * 是否可以滑动
-         */
-        public boolean isCanSwipe(SwipeMenuLayout layout) {
-            //已经打开了，可以滑动
-            if (isOpenInstance(layout)) {
-                return true;
-            }
-            //一个都没打开，也可以滑动
-            return mOpenInstance == null;
-        }
-
-        /**
-         * 保存打开的实例
-         */
-        void holdOpenInstance(SwipeMenuLayout layout) {
-            mOpenInstance = layout;
-        }
-
-        /**
-         * 移除打开的实例
-         */
-        void removeOpenInstance() {
-            mOpenInstance = null;
-        }
-
-        /**
-         * 关闭当前打开中的条目
-         */
-        public void closeOpenInstance() {
-            if (mOpenInstance != null) {
-                mOpenInstance.closeMenu();
-                mOpenInstance = null;
-            }
-        }
-
-        /**
-         * 判断布局是否打开中
-         */
-        public boolean isOpenInstance(SwipeMenuLayout layout) {
-            return mOpenInstance == layout;
-        }
-
-        /**
-         * 是否存在一个菜单在关闭
-         */
-        public boolean isOpenMenu() {
-            return mOpenInstance != null;
-        }
+    public static SwipeMenuLayout getViewCache() {
+        return mViewCache;
     }
 }
