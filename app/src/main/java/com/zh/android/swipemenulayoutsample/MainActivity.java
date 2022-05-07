@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         RecyclerView recyclerView = findViewById(R.id.recycler_view);
         mListItems = new Items();
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 100; i++) {
             mListItems.add(new ListItemModel("我是条目" + i));
         }
         mListAdapter = new MultiTypeAdapter(mListItems);

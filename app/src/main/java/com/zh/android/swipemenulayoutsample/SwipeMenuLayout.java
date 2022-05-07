@@ -176,6 +176,12 @@ public class SwipeMenuLayout extends FrameLayout {
     }
 
     @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        setMenuClose();
+    }
+
+    @Override
     protected void onDetachedFromWindow() {
         if (this == mViewCache) {
             mViewCache.closeMenu();
