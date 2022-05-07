@@ -157,7 +157,7 @@ public class SwipeMenuLayout extends FrameLayout {
             @Override
             public int clampViewPositionVertical(@NonNull View child, int top, int dy) {
                 //拽托子View纵向滑动时回调，锁定顶部padding距离即可，不能不复写，否则少了顶部的padding，位置就偏去上面了
-                return getPaddingTop();
+                return 0;
             }
 
             @Override
