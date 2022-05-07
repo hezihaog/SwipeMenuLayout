@@ -1,10 +1,13 @@
 package com.zh.android.swipemenulayoutsample;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -22,6 +25,7 @@ import me.drakeet.multitype.MultiTypeAdapter;
 /**
  * @author wally
  */
+@SuppressLint("ClickableViewAccessibility")
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 
@@ -63,6 +67,18 @@ public class MainActivity extends AppCompatActivity {
         }));
         recyclerView.setAdapter(mListAdapter);
         recyclerView.addItemDecoration(new DividerItemDecoration(this, RecyclerView.VERTICAL));
+        recyclerView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (MotionEvent.ACTION_DOWN == event.getAction()) {
+                    SwipeMenuLayout swipeMenuLayout = SwipeMenuLayout.getViewCache();
+                    if (swipeMenuLayout != null) {
+                        swipeMenuLayout.closeMenu();
+                    }
+                }
+                return false;
+            }
+        });
     }
 
     private void toast(String msg) {
