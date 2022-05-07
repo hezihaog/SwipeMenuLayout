@@ -47,12 +47,18 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClickUnread(ListItemModel item) {
                 int position = mListItems.indexOf(item);
+                if (position == -1) {
+                    return;
+                }
                 toast(position + "：设置未读");
             }
 
             @Override
             public void onClickDelete(ListItemModel item) {
                 int position = mListItems.indexOf(item);
+                if (position == -1) {
+                    return;
+                }
                 mListItems.remove(position);
                 mListAdapter.notifyItemRemoved(position);
                 //通知其他条目的position改变
@@ -64,12 +70,18 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onOpenMenu(ListItemModel item) {
                 int position = mListItems.indexOf(item);
+                if (position == -1) {
+                    return;
+                }
                 Log.d(TAG, position + "：菜单打开");
             }
 
             @Override
             public void onCloseMenu(ListItemModel item) {
                 int position = mListItems.indexOf(item);
+                if (position == -1) {
+                    return;
+                }
                 Log.d(TAG, position + "：菜单关闭");
             }
         }));
