@@ -45,23 +45,31 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         mListAdapter.register(ListItemModel.class, new ListItemViewBinder(new ListItemViewBinder.Callback() {
             @Override
-            public void onClickUnread(int position) {
+            public void onClickUnread(ListItemModel item) {
+                int position = mListItems.indexOf(item);
                 toast(position + "：设置未读");
             }
 
             @Override
-            public void onClickDelete(int position) {
+            public void onClickDelete(ListItemModel item) {
+                int position = mListItems.indexOf(item);
                 mListItems.remove(position);
                 mListAdapter.notifyItemRemoved(position);
+                //通知其他条目的position改变
+                if (position < mListAdapter.getItemCount()) {
+                    mListAdapter.notifyItemRangeChanged(position, mListAdapter.getItemCount() - position);
+                }
             }
 
             @Override
-            public void onOpenMenu(int position) {
+            public void onOpenMenu(ListItemModel item) {
+                int position = mListItems.indexOf(item);
                 Log.d(TAG, position + "：菜单打开");
             }
 
             @Override
-            public void onCloseMenu(int position) {
+            public void onCloseMenu(ListItemModel item) {
+                int position = mListItems.indexOf(item);
                 Log.d(TAG, position + "：菜单关闭");
             }
         }));

@@ -30,22 +30,22 @@ public class ListItemViewBinder extends ItemViewBinder<ListItemModel, ListItemVi
         /**
          * 点击了标记为未读
          */
-        void onClickUnread(int position);
+        void onClickUnread(ListItemModel item);
 
         /**
          * 点击了删除
          */
-        void onClickDelete(int position);
+        void onClickDelete(ListItemModel item);
 
         /**
          * 菜单开启
          */
-        void onOpenMenu(int position);
+        void onOpenMenu(ListItemModel item);
 
         /**
          * 菜单关闭
          */
-        void onCloseMenu(int position);
+        void onCloseMenu(ListItemModel item);
     }
 
     public ListItemViewBinder(Callback callback) {
@@ -59,23 +59,21 @@ public class ListItemViewBinder extends ItemViewBinder<ListItemModel, ListItemVi
     }
 
     @Override
-    protected void onBindViewHolder(@NonNull final ViewHolder holder, @NonNull ListItemModel item) {
+    protected void onBindViewHolder(@NonNull final ViewHolder holder, @NonNull final ListItemModel item) {
         holder.vContent.setText(item.getContent());
         //滑动菜单开、关监听
         holder.vSwipeMenuLayout.addOnMenuStateChangeListener(new SwipeMenuLayout.OnMenuStateChangeListener() {
             @Override
             public void onOpenMenu() {
                 if (mCallback != null) {
-                    final int position = getPosition(holder);
-                    mCallback.onOpenMenu(position);
+                    mCallback.onOpenMenu(item);
                 }
             }
 
             @Override
             public void onCloseMenu() {
                 if (mCallback != null) {
-                    final int position = getPosition(holder);
-                    mCallback.onCloseMenu(position);
+                    mCallback.onCloseMenu(item);
                 }
             }
         });
@@ -84,8 +82,7 @@ public class ListItemViewBinder extends ItemViewBinder<ListItemModel, ListItemVi
             @Override
             public void onClick(View v) {
                 if (mCallback != null) {
-                    final int position = getPosition(holder);
-                    mCallback.onClickUnread(position);
+                    mCallback.onClickUnread(item);
                 }
             }
         });
@@ -94,8 +91,7 @@ public class ListItemViewBinder extends ItemViewBinder<ListItemModel, ListItemVi
             @Override
             public void onClick(View v) {
                 if (mCallback != null) {
-                    final int position = getPosition(holder);
-                    mCallback.onClickDelete(position);
+                    mCallback.onClickDelete(item);
                 }
             }
         });

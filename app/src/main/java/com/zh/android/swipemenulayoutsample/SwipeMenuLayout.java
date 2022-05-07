@@ -210,7 +210,6 @@ public class SwipeMenuLayout extends FrameLayout {
             //当触摸时，先关闭上一个菜单
             if (mViewCache != null) {
                 mViewCache.closeMenu();
-                return true;
             }
         }
         //将onInterceptTouchEvent委托给ViewDragHelper
