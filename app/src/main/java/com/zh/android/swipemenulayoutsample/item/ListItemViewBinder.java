@@ -28,6 +28,11 @@ public class ListItemViewBinder extends ItemViewBinder<ListItemModel, ListItemVi
 
     public interface Callback {
         /**
+         * 点击了内容
+         */
+        void onClickContent(ListItemModel item);
+
+        /**
          * 点击了标记为未读
          */
         void onClickUnread(ListItemModel item);
@@ -61,6 +66,14 @@ public class ListItemViewBinder extends ItemViewBinder<ListItemModel, ListItemVi
     @Override
     protected void onBindViewHolder(@NonNull final ViewHolder holder, @NonNull final ListItemModel item) {
         holder.vContent.setText(item.getContent());
+        holder.vContent.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mCallback != null) {
+                    mCallback.onClickContent(item);
+                }
+            }
+        });
         //滑动菜单开、关监听
         holder.vSwipeMenuLayout.addOnMenuStateChangeListener(new SwipeMenuLayout.OnMenuStateChangeListener() {
             @Override

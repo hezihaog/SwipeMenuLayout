@@ -45,12 +45,31 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         mListAdapter.register(ListItemModel.class, new ListItemViewBinder(new ListItemViewBinder.Callback() {
             @Override
+            public void onClickContent(ListItemModel item) {
+                int position = mListItems.indexOf(item);
+                if (position == -1) {
+                    return;
+                }
+                toast(position + "：点击内容");
+                //关闭菜单
+                SwipeMenuLayout viewCache = SwipeMenuLayout.getViewCache();
+                if (viewCache != null) {
+                    viewCache.smoothClose();
+                }
+            }
+
+            @Override
             public void onClickUnread(ListItemModel item) {
                 int position = mListItems.indexOf(item);
                 if (position == -1) {
                     return;
                 }
                 toast(position + "：设置未读");
+                //关闭菜单
+                SwipeMenuLayout viewCache = SwipeMenuLayout.getViewCache();
+                if (viewCache != null) {
+                    viewCache.smoothClose();
+                }
             }
 
             @Override
@@ -93,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
                 if (MotionEvent.ACTION_DOWN == event.getAction()) {
                     SwipeMenuLayout swipeMenuLayout = SwipeMenuLayout.getViewCache();
                     if (swipeMenuLayout != null) {
-                        swipeMenuLayout.closeMenu();
+                        swipeMenuLayout.smoothClose();
                     }
                 }
                 return false;
@@ -118,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
             //关闭当前已打开的菜单
             SwipeMenuLayout viewCache = SwipeMenuLayout.getViewCache();
             if (viewCache != null) {
-                viewCache.closeMenu();
+                viewCache.smoothClose();
             }
             return true;
         }

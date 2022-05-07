@@ -173,7 +173,7 @@ public class SwipeMenuLayout extends FrameLayout {
                     openMenu();
                 } else {
                     //其他情况，关闭菜单
-                    closeMenu();
+                    smoothClose();
                 }
             }
         });
@@ -182,7 +182,7 @@ public class SwipeMenuLayout extends FrameLayout {
     private final BroadcastReceiver mCloseAllSwipeMenuLayoutReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            closeMenu();
+            smoothClose();
         }
     };
 
@@ -199,7 +199,7 @@ public class SwipeMenuLayout extends FrameLayout {
     @Override
     protected void onDetachedFromWindow() {
         if (this == mViewCache) {
-            mViewCache.closeMenu();
+            mViewCache.smoothClose();
             mViewCache = null;
         }
         try {
@@ -232,8 +232,8 @@ public class SwipeMenuLayout extends FrameLayout {
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
+        //当触摸时，先关闭上一个菜单
         if (MotionEvent.ACTION_DOWN == ev.getAction()) {
-            //当触摸时，先关闭上一个菜单
             callCloseAllSwipeMenuLayout();
         }
         //将onInterceptTouchEvent委托给ViewDragHelper
@@ -291,19 +291,35 @@ public class SwipeMenuLayout extends FrameLayout {
      * 设置菜单开，不通知回调
      */
     public void setMenuOpen() {
+        setMenuOpen(false);
+    }
+
+    /**
+     * 设置菜单开
+     *
+     * @param isNeedCallListener 是否需要通知监听器
+     */
+    public void setMenuOpen(boolean isNeedCallListener) {
         //让内容区域移动，向左一个菜单的距离
         int finalLeft = -vMenuView.getWidth();
         int menuWidth = vMenuView.getWidth();
         //直接让layout移动
         vContentView.layout(finalLeft, getTop(), getRight(), getBottom());
         vMenuView.layout(getRight() - menuWidth, getTop(), getRight(), getBottom());
-        onMenuOpenFinish(false);
+        onMenuOpenFinish(isNeedCallListener);
+    }
+
+    /**
+     * 快速关闭，不带动画
+     */
+    public void quickClose() {
+        setMenuOpen(true);
     }
 
     /**
      * 向右移动，关闭菜单
      */
-    public void closeMenu() {
+    public void smoothClose() {
         mViewDragHelper.smoothSlideViewTo(vContentView, 0, vContentView.getTop());
         ViewCompat.postInvalidateOnAnimation(this);
     }
