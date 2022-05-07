@@ -54,21 +54,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onOpenMenu(int position) {
                 Log.d(TAG, position + "：菜单打开");
-                Object model = mListItems.get(position);
-                if (model instanceof ListItemModel) {
-                    ListItemModel itemModel = (ListItemModel) model;
-                    itemModel.setMenuOpen(true);
-                }
             }
 
             @Override
             public void onCloseMenu(int position) {
                 Log.d(TAG, position + "：菜单关闭");
-                Object model = mListItems.get(position);
-                if (model instanceof ListItemModel) {
-                    ListItemModel itemModel = (ListItemModel) model;
-                    itemModel.setMenuOpen(false);
-                }
             }
         }));
         recyclerView.setAdapter(mListAdapter);

@@ -61,12 +61,6 @@ public class ListItemViewBinder extends ItemViewBinder<ListItemModel, ListItemVi
     @Override
     protected void onBindViewHolder(@NonNull final ViewHolder holder, @NonNull ListItemModel item) {
         holder.vContent.setText(item.getContent());
-        //恢复开、关状态
-        if (item.isMenuOpen()) {
-            holder.vSwipeMenuLayout.setMenuOpen();
-        } else {
-            holder.vSwipeMenuLayout.setMenuClose();
-        }
         //滑动菜单开、关监听
         holder.vSwipeMenuLayout.addOnMenuStateChangeListener(new SwipeMenuLayout.OnMenuStateChangeListener() {
             @Override
