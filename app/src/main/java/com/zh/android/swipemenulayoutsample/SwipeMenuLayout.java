@@ -1,7 +1,10 @@
 package com.zh.android.swipemenulayoutsample;
 
 import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -19,6 +22,8 @@ import androidx.customview.widget.ViewDragHelper;
  * <b>Description:</b> 侧滑菜单布局，只有内容区域和菜单区域2个子View <br>
  */
 public class SwipeMenuLayout extends FrameLayout {
+    private static final String ACTION_CLOSE_ALL_SWIPE_MENU_LAYOUT = "action_close_all_swipe_menu_layout";
+
     /**
      * 内容区域View
      */
@@ -129,21 +134,20 @@ public class SwipeMenuLayout extends FrameLayout {
             @Override
             public void onViewDragStateChanged(int state) {
                 super.onViewDragStateChanged(state);
+                int menuViewLeft = vMenuView.getLeft();
+                int menuViewWidth = vMenuView.getWidth();
+                //打开时，菜单的左边位置
+                int openMenuLeft = getRight() - menuViewWidth;
+                //关闭时，菜单的左边位置
+                int closeMenuLeft = getRight();
+                boolean isMenuOpen = menuViewLeft == openMenuLeft;
+                boolean isMenuClose = menuViewLeft == closeMenuLeft;
                 //处理开、关菜单回调
                 if (state == ViewDragHelper.STATE_IDLE) {
-                    int menuViewLeft = vMenuView.getLeft();
-                    int menuViewWidth = vMenuView.getWidth();
-                    //打开时，菜单的左边位置
-                    int openMenuLeft = getRight() - menuViewWidth;
-                    //关闭时，菜单的左边位置
-                    int closeMenuLeft = getRight();
-                    //是否有一个菜单在打开
-                    //boolean isOpenMenu = mViewCache != null && mViewCache.isOpenMenu();
-                    //由于这个方法移动一下，就回调一次，所以会重复，必须加上标志位
-                    if ((menuViewLeft == openMenuLeft)) {
-                        //菜单开
+                    //菜单开
+                    if (isMenuOpen) {
                         onMenuOpenFinish(true);
-                    } else if (menuViewLeft == closeMenuLeft) {
+                    } else if (isMenuClose) {
                         //菜单关
                         onMenuCloseFinish(true);
                     }
@@ -175,10 +179,21 @@ public class SwipeMenuLayout extends FrameLayout {
         });
     }
 
+    private final BroadcastReceiver mCloseAllSwipeMenuLayoutReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            closeMenu();
+        }
+    };
+
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         setMenuClose();
+        getApplicationContext().registerReceiver(
+                mCloseAllSwipeMenuLayoutReceiver,
+                new IntentFilter(ACTION_CLOSE_ALL_SWIPE_MENU_LAYOUT)
+        );
     }
 
     @Override
@@ -186,6 +201,11 @@ public class SwipeMenuLayout extends FrameLayout {
         if (this == mViewCache) {
             mViewCache.closeMenu();
             mViewCache = null;
+        }
+        try {
+            getApplicationContext().unregisterReceiver(mCloseAllSwipeMenuLayoutReceiver);
+        } catch (Throwable e) {
+            e.printStackTrace();
         }
         super.onDetachedFromWindow();
     }
@@ -214,9 +234,7 @@ public class SwipeMenuLayout extends FrameLayout {
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         if (MotionEvent.ACTION_DOWN == ev.getAction()) {
             //当触摸时，先关闭上一个菜单
-            if (mViewCache != null) {
-                mViewCache.closeMenu();
-            }
+            callCloseAllSwipeMenuLayout();
         }
         //将onInterceptTouchEvent委托给ViewDragHelper
         return mViewDragHelper.shouldInterceptTouchEvent(ev);
@@ -322,6 +340,17 @@ public class SwipeMenuLayout extends FrameLayout {
         if (isNeedCallListener && mMenuStateChangeListener != null) {
             mMenuStateChangeListener.onCloseMenu();
         }
+    }
+
+    /**
+     * 通知所有侧滑布局都关闭掉
+     */
+    private void callCloseAllSwipeMenuLayout() {
+        getApplicationContext().sendBroadcast(new Intent(ACTION_CLOSE_ALL_SWIPE_MENU_LAYOUT));
+    }
+
+    private Context getApplicationContext() {
+        return getContext().getApplicationContext();
     }
 
     public interface OnMenuStateChangeListener {
