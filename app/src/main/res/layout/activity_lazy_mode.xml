@@ -4,14 +4,14 @@
     android:id="@+id/swipe_menu_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    app:sml_left_swipe="true">
+    app:sml_left_swipe="false">
 
     <TextView
         android:id="@+id/content_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:text="右滑动进入懒人模式"
+        android:text="左滑动返回自选模式"
         android:textColor="@android:color/black"
         android:textSize="18sp" />
 

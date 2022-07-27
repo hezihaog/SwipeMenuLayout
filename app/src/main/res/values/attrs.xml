@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="SwipeMenuLayout">
+        <!-- 是否左滑 -->
+        <attr name="sml_left_swipe" format="boolean" />
+    </declare-styleable>
+</resources>

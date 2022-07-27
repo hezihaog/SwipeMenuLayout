@@ -1,10 +1,7 @@
 package com.zh.android.swipemenulayoutsample;
 
-import android.annotation.SuppressLint;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
+import android.content.res.TypedArray;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -22,8 +19,6 @@ import androidx.customview.widget.ViewDragHelper;
  * <b>Description:</b> 侧滑菜单布局，只有内容区域和菜单区域2个子View <br>
  */
 public class SwipeMenuLayout extends FrameLayout {
-    private static final String ACTION_CLOSE_ALL_SWIPE_MENU_LAYOUT = "action_close_all_swipe_menu_layout";
-
     /**
      * 内容区域View
      */
@@ -49,10 +44,9 @@ public class SwipeMenuLayout extends FrameLayout {
      */
     private float mDownY;
     /**
-     * 保存上一个展开的菜单
+     * 是否左滑打开菜单
      */
-    @SuppressLint("StaticFieldLeak")
-    private static SwipeMenuLayout mViewCache;
+    private boolean isLeftSwipe;
 
     public SwipeMenuLayout(Context context) {
         this(context, null);
@@ -68,11 +62,15 @@ public class SwipeMenuLayout extends FrameLayout {
     }
 
     private void init(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
-        mViewDragHelper = ViewDragHelper.create(this, 1.0f, new ViewDragHelper.Callback() {
+        TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.SwipeMenuLayout, defStyleAttr, 0);
+        //是否左滑打开菜单
+        isLeftSwipe = typedArray.getBoolean(R.styleable.SwipeMenuLayout_sml_left_swipe, true);
+        typedArray.recycle();
+        mViewDragHelper = ViewDragHelper.create(this, 0.6f, new ViewDragHelper.Callback() {
             @Override
             public boolean tryCaptureView(@NonNull View child, int pointerId) {
-                //内容区域和菜单区域布局才能拽托
-                return child == vContentView || child == vMenuView;
+                //内容区域可以拽托
+                return child == vContentView;
             }
 
             @Override
@@ -83,12 +81,9 @@ public class SwipeMenuLayout extends FrameLayout {
 
             @Override
             public int clampViewPositionHorizontal(@NonNull View child, int left, int dx) {
-                //内容区域大小
-                int contentViewWidth = vContentView.getWidth();
                 //菜单区域的宽度
                 int menuViewWidth = vMenuView.getWidth();
-                //滑动的是内容区域
-                if (child == vContentView) {
+                if (isLeftSwipe) {
                     //不能向左滑动出界限
                     if (left > 0) {
                         return 0;
@@ -99,49 +94,46 @@ public class SwipeMenuLayout extends FrameLayout {
                         //在上面指定范围内，可滑动
                         return left;
                     }
-                } else if (child == vMenuView) {
-                    //滑动的时菜单区域
-                    if (left > contentViewWidth) {
-                        //菜单不能滑动出内容区域，不能继续向右滑动
-                        return contentViewWidth;
-                    } else if (left < (contentViewWidth - menuViewWidth)) {
-                        //菜单完全显示出来了，不能继续向左滑动
-                        return contentViewWidth - menuViewWidth;
+                } else {
+                    if (left < 0) {
+                        return 0;
+                    } else if (left > menuViewWidth) {
+                        return menuViewWidth;
                     } else {
                         return left;
                     }
                 }
-                return 0;
             }
 
             @Override
             public void onViewPositionChanged(@NonNull View changedView, int left, int top, int dx, int dy) {
                 super.onViewPositionChanged(changedView, left, top, dx, dy);
-                //拽托微信更新时回调，我们在这里更新内容区域和菜单区域的位置，才能让这2部分一起联动
-                if (changedView == vContentView) {
-                    //拽托内容布局，让菜单布局跟着移动
-                    int newLeft = vMenuView.getLeft() + dx;
-                    int right = newLeft + vMenuView.getWidth();
-                    vMenuView.layout(newLeft, top, right, getBottom());
-                } else if (changedView == vMenuView) {
-                    //拽托菜单布局，让内容布局跟着移动
-                    int newLeft = left - vContentView.getWidth();
-                    vContentView.layout(newLeft, vContentView.getTop(),
-                            left, vContentView.getBottom());
-                }
+                //拽托内容布局，让菜单布局跟着移动
+                int newLeft = vMenuView.getLeft() + dx;
+                int right = newLeft + vMenuView.getWidth();
+                vMenuView.layout(newLeft, top, right, getBottom());
             }
 
             @Override
             public void onViewDragStateChanged(int state) {
                 super.onViewDragStateChanged(state);
+                boolean isMenuOpen;
+                boolean isMenuClose;
                 int menuViewLeft = vMenuView.getLeft();
                 int menuViewWidth = vMenuView.getWidth();
-                //打开时，菜单的左边位置
-                int openMenuLeft = getRight() - menuViewWidth;
-                //关闭时，菜单的左边位置
-                int closeMenuLeft = getRight();
-                boolean isMenuOpen = menuViewLeft == openMenuLeft;
-                boolean isMenuClose = menuViewLeft == closeMenuLeft;
+                int openMenuLeft;
+                int closeMenuLeft;
+                if (isLeftSwipe) {
+                    //打开时，菜单的左边位置
+                    openMenuLeft = getRight() - menuViewWidth;
+                    //关闭时，菜单的左边位置
+                    closeMenuLeft = getRight();
+                } else {
+                    openMenuLeft = 0;
+                    closeMenuLeft = -menuViewWidth;
+                }
+                isMenuOpen = menuViewLeft == openMenuLeft;
+                isMenuClose = menuViewLeft == closeMenuLeft;
                 //处理开、关菜单回调
                 if (state == ViewDragHelper.STATE_IDLE) {
                     //菜单开
@@ -168,46 +160,24 @@ public class SwipeMenuLayout extends FrameLayout {
                 float halfMenuWidth = vMenuView.getWidth() / 2f;
                 //打开时的宽度，内容区域宽度减去一个菜单区域的宽度
                 float fullOpenWidth = contentViewWidth - halfMenuWidth;
-                //判断方向，向左滑动到打开，打开菜单
-                if (vContentView.getRight() < fullOpenWidth) {
-                    openMenu();
+                if (isLeftSwipe) {
+                    //判断方向，向左滑动到打开，打开菜单
+                    if (vContentView.getRight() < fullOpenWidth) {
+                        openMenu();
+                    } else {
+                        //其他情况，关闭菜单
+                        smoothClose();
+                    }
                 } else {
-                    //其他情况，关闭菜单
-                    smoothClose();
+//                    if (vMenuView.getRight() >= halfMenuWidth) {
+//                        openMenu();
+//                    } else {
+//                        //其他情况，关闭菜单
+//                        smoothClose();
+//                    }
                 }
             }
         });
-    }
-
-    private final BroadcastReceiver mCloseAllSwipeMenuLayoutReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            smoothClose();
-        }
-    };
-
-    @Override
-    protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
-        setMenuClose();
-        getApplicationContext().registerReceiver(
-                mCloseAllSwipeMenuLayoutReceiver,
-                new IntentFilter(ACTION_CLOSE_ALL_SWIPE_MENU_LAYOUT)
-        );
-    }
-
-    @Override
-    protected void onDetachedFromWindow() {
-        if (this == mViewCache) {
-            mViewCache.smoothClose();
-            mViewCache = null;
-        }
-        try {
-            getApplicationContext().unregisterReceiver(mCloseAllSwipeMenuLayoutReceiver);
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
-        super.onDetachedFromWindow();
     }
 
     @Override
@@ -215,8 +185,13 @@ public class SwipeMenuLayout extends FrameLayout {
         super.onLayout(changed, left, top, right, bottom);
         //布局内容区域，和父View一样大小
         vContentView.layout(left, top, right, bottom);
-        //布局菜单区域，在内容区域的右边
-        vMenuView.layout(right, top, right + vMenuView.getMeasuredWidth(), bottom);
+        //布局菜单区域，内容在左，菜单在内容区域的右边
+        if (isLeftSwipe) {
+            vMenuView.layout(right, top, right + vMenuView.getMeasuredWidth(), bottom);
+        } else {
+            //内容在右，菜单在内容区域的左边
+            vMenuView.layout(left - vMenuView.getMeasuredWidth(), top, left, bottom);
+        }
     }
 
     @Override
@@ -232,10 +207,6 @@ public class SwipeMenuLayout extends FrameLayout {
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
-        //当触摸时，先关闭上一个菜单
-        if (MotionEvent.ACTION_DOWN == ev.getAction()) {
-            callCloseAllSwipeMenuLayout();
-        }
         //将onInterceptTouchEvent委托给ViewDragHelper
         return mViewDragHelper.shouldInterceptTouchEvent(ev);
     }
@@ -340,7 +311,6 @@ public class SwipeMenuLayout extends FrameLayout {
      * @param isNeedCallListener 是否需要通知监听器
      */
     private void onMenuOpenFinish(boolean isNeedCallListener) {
-        mViewCache = this;
         if (isNeedCallListener && mMenuStateChangeListener != null) {
             mMenuStateChangeListener.onOpenMenu();
         }
@@ -352,21 +322,9 @@ public class SwipeMenuLayout extends FrameLayout {
      * @param isNeedCallListener 是否需要通知监听器
      */
     private void onMenuCloseFinish(boolean isNeedCallListener) {
-        mViewCache = null;
         if (isNeedCallListener && mMenuStateChangeListener != null) {
             mMenuStateChangeListener.onCloseMenu();
         }
-    }
-
-    /**
-     * 通知所有侧滑布局都关闭掉
-     */
-    private void callCloseAllSwipeMenuLayout() {
-        getApplicationContext().sendBroadcast(new Intent(ACTION_CLOSE_ALL_SWIPE_MENU_LAYOUT));
-    }
-
-    private Context getApplicationContext() {
-        return getContext().getApplicationContext();
     }
 
     public interface OnMenuStateChangeListener {
@@ -388,19 +346,5 @@ public class SwipeMenuLayout extends FrameLayout {
      */
     public void addOnMenuStateChangeListener(OnMenuStateChangeListener listener) {
         mMenuStateChangeListener = listener;
-    }
-
-    /**
-     * 是否打开了菜单
-     */
-    public boolean isOpenMenu() {
-        return mViewCache != null;
-    }
-
-    /**
-     * 返回正在展开的SwipeMenuLayout
-     */
-    public static SwipeMenuLayout getViewCache() {
-        return mViewCache;
     }
 }

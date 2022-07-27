@@ -1,27 +1,27 @@
 package com.zh.android.swipemenulayoutsample;
 
-import android.content.Intent;
 import android.os.Bundle;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.zh.android.swipemenulayoutsample.lazymode.LazyModeEntryHelper;
 import com.zh.android.swipemenulayoutsample.lazymode.LazyModeEntryView;
 
 /**
- * @author wally
+ * 懒人模式
  */
-public class MainActivity extends AppCompatActivity {
+public class LazyModeActivity extends AppCompatActivity {
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_lazy_mode);
         final SwipeMenuLayout swipeMenuLayout = findViewById(R.id.swipe_menu_layout);
         swipeMenuLayout.addOnMenuStateChangeListener(new SwipeMenuLayout.OnMenuStateChangeListener() {
             @Override
             public void onOpenMenu() {
                 swipeMenuLayout.smoothClose();
-                startActivity(new Intent(MainActivity.this, LazyModeActivity.class));
+                finish();
             }
 
             @Override
@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
         });
         LazyModeEntryView lazyModeEntryView = findViewById(R.id.lazy_mode_entry_view);
         lazyModeEntryView.bindData(
-                LazyModeEntryHelper.getEntryDataModelByType(LazyModeEntryHelper.Type.ENTER_2_LAZY)
+                LazyModeEntryHelper.getEntryDataModelByType(LazyModeEntryHelper.Type.ENTER_2_CUSTOM)
         );
     }
 }
