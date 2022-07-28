@@ -67,10 +67,26 @@ public class SwipeMenuLayout extends FrameLayout {
         isLeftSwipe = typedArray.getBoolean(R.styleable.SwipeMenuLayout_sml_left_swipe, true);
         typedArray.recycle();
         mViewDragHelper = ViewDragHelper.create(this, 0.6f, new ViewDragHelper.Callback() {
+            /**
+             * 开始拽托时的X坐标
+             */
+            private int mDownX;
+            /**
+             * 开始拽托时的Y坐标
+             */
+            private int mDownY;
+
             @Override
             public boolean tryCaptureView(@NonNull View child, int pointerId) {
                 //内容区域可以拽托
                 return child == vContentView;
+            }
+
+            @Override
+            public void onViewCaptured(@NonNull View capturedChild, int activePointerId) {
+                super.onViewCaptured(capturedChild, activePointerId);
+                mDownX = capturedChild.getLeft();
+                mDownY = capturedChild.getTop();
             }
 
             @Override
@@ -138,10 +154,10 @@ public class SwipeMenuLayout extends FrameLayout {
                 if (state == ViewDragHelper.STATE_IDLE) {
                     //菜单开
                     if (isMenuOpen) {
-                        onMenuOpenFinish(true);
+                        onMenuOpenFinish();
                     } else if (isMenuClose) {
                         //菜单关
-                        onMenuCloseFinish(true);
+                        onMenuCloseFinish();
                     }
                 }
             }
@@ -156,25 +172,35 @@ public class SwipeMenuLayout extends FrameLayout {
             public void onViewReleased(@NonNull View releasedChild, float xvel, float yvel) {
                 super.onViewReleased(releasedChild, xvel, yvel);
                 int contentViewWidth = vContentView.getWidth();
+                //手指释放时回调
+                final int currentLeft = releasedChild.getLeft();
+                final int currentTop = releasedChild.getTop();
+                //计算移动距离
+                int distanceX = currentLeft - mDownX;
+                int distanceY = currentTop - mDownY;
                 //松手回弹，如果右边剩余的距离大于Menu的一半，则滚动到最后边，否则滚动回最左边
                 float halfMenuWidth = vMenuView.getWidth() / 2f;
-                //打开时的宽度，内容区域宽度减去一个菜单区域的宽度
-                float fullOpenWidth = contentViewWidth - halfMenuWidth;
-                if (isLeftSwipe) {
-                    //判断方向，向左滑动到打开，打开菜单
-                    if (vContentView.getRight() < fullOpenWidth) {
-                        openMenu();
+                //判断是否是左右滑，上下滑不需要动
+                if (Math.abs(distanceX) > Math.abs(distanceY)) {
+                    if (isLeftSwipe) {
+                        //打开时的宽度，内容区域宽度减去一个菜单区域的宽度
+                        float fullOpenWidth = contentViewWidth - halfMenuWidth;
+                        //判断方向，向左滑动到打开，打开菜单
+                        if (releasedChild.getRight() < fullOpenWidth) {
+                            smoothOpenMenu();
+                        } else {
+                            //其他情况，关闭菜单
+                            smoothClose();
+                        }
                     } else {
-                        //其他情况，关闭菜单
-                        smoothClose();
+                        //左滑，菜单露出超过一半，那么打开
+                        if (vMenuView.getRight() > halfMenuWidth) {
+                            smoothOpenMenu();
+                        } else {
+                            //没有露出一半，那么关闭
+                            smoothClose();
+                        }
                     }
-                } else {
-//                    if (vMenuView.getRight() >= halfMenuWidth) {
-//                        openMenu();
-//                    } else {
-//                        //其他情况，关闭菜单
-//                        smoothClose();
-//                    }
                 }
             }
         });
@@ -252,39 +278,17 @@ public class SwipeMenuLayout extends FrameLayout {
     /**
      * 向左移动，打开菜单
      */
-    public void openMenu() {
-        int finalLeft = -vMenuView.getWidth();
+    public void smoothOpenMenu() {
+        int finalLeft;
+        //左滑，内容向左移动一个菜单布局的宽度
+        if (isLeftSwipe) {
+            finalLeft = -vMenuView.getWidth();
+        } else {
+            //右滑，内容向右移动一个菜单布局的宽度
+            finalLeft = vMenuView.getWidth();
+        }
         mViewDragHelper.smoothSlideViewTo(vContentView, finalLeft, vContentView.getTop());
         ViewCompat.postInvalidateOnAnimation(this);
-    }
-
-    /**
-     * 设置菜单开，不通知回调
-     */
-    public void setMenuOpen() {
-        setMenuOpen(false);
-    }
-
-    /**
-     * 设置菜单开
-     *
-     * @param isNeedCallListener 是否需要通知监听器
-     */
-    public void setMenuOpen(boolean isNeedCallListener) {
-        //让内容区域移动，向左一个菜单的距离
-        int finalLeft = -vMenuView.getWidth();
-        int menuWidth = vMenuView.getWidth();
-        //直接让layout移动
-        vContentView.layout(finalLeft, getTop(), getRight(), getBottom());
-        vMenuView.layout(getRight() - menuWidth, getTop(), getRight(), getBottom());
-        onMenuOpenFinish(isNeedCallListener);
-    }
-
-    /**
-     * 快速关闭，不带动画
-     */
-    public void quickClose() {
-        setMenuOpen(true);
     }
 
     /**
@@ -296,33 +300,19 @@ public class SwipeMenuLayout extends FrameLayout {
     }
 
     /**
-     * 设置菜单关，不通知回调
-     */
-    public void setMenuClose() {
-        //没有动画，直接让layout移动
-        vContentView.layout(getLeft(), getTop(), getRight(), getBottom());
-        vMenuView.layout(getRight(), getTop(), getRight() + vMenuView.getWidth(), getBottom());
-        onMenuCloseFinish(false);
-    }
-
-    /**
      * 当菜单打开完成时调用
-     *
-     * @param isNeedCallListener 是否需要通知监听器
      */
-    private void onMenuOpenFinish(boolean isNeedCallListener) {
-        if (isNeedCallListener && mMenuStateChangeListener != null) {
+    private void onMenuOpenFinish() {
+        if (mMenuStateChangeListener != null) {
             mMenuStateChangeListener.onOpenMenu();
         }
     }
 
     /**
      * 当菜单关闭完成时调用
-     *
-     * @param isNeedCallListener 是否需要通知监听器
      */
-    private void onMenuCloseFinish(boolean isNeedCallListener) {
-        if (isNeedCallListener && mMenuStateChangeListener != null) {
+    private void onMenuCloseFinish() {
+        if (mMenuStateChangeListener != null) {
             mMenuStateChangeListener.onCloseMenu();
         }
     }
@@ -345,6 +335,6 @@ public class SwipeMenuLayout extends FrameLayout {
      * @param listener 监听器
      */
     public void addOnMenuStateChangeListener(OnMenuStateChangeListener listener) {
-        mMenuStateChangeListener = listener;
+        this.mMenuStateChangeListener = listener;
     }
 }
