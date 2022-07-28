@@ -17,6 +17,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         final SwipeMenuLayout swipeMenuLayout = findViewById(R.id.swipe_menu_layout);
+        swipeMenuLayout.setSwipeEnable(true);
         swipeMenuLayout.addOnMenuStateChangeListener(new SwipeMenuLayout.OnMenuStateChangeListener() {
             @Override
             public void onOpenMenu() {
