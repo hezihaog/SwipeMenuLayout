@@ -5,5 +5,23 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowAnimationStyle">@style/transitionActivity</item>
+    </style>
+
+    <!-- Activity切换动画 -->
+    <style name="transitionActivity" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/activity_transition_open_enter</item>
+        <item name="android:activityOpenExitAnimation">@anim/activity_transition_open_exit</item>
+        <item name="android:activityCloseEnterAnimation">@anim/activity_transition_close_enter
+        </item>
+        <item name="android:activityCloseExitAnimation">@anim/activity_transition_close_exit</item>
+        <item name="android:taskOpenEnterAnimation">@anim/activity_transition_open_enter</item>
+        <item name="android:taskOpenExitAnimation">@anim/activity_transition_open_exit</item>
+        <item name="android:taskCloseEnterAnimation">@anim/activity_transition_close_enter</item>
+        <item name="android:taskCloseExitAnimation">@anim/activity_transition_close_exit</item>
+        <item name="android:taskToFrontEnterAnimation">@anim/activity_transition_open_enter</item>
+        <item name="android:taskToFrontExitAnimation">@anim/activity_transition_open_exit</item>
+        <item name="android:taskToBackEnterAnimation">@anim/activity_transition_close_enter</item>
+        <item name="android:taskToBackExitAnimation">@anim/activity_transition_close_exit</item>
     </style>
 </resources>
