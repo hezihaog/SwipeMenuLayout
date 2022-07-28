@@ -7,6 +7,7 @@
     app:sml_left_swipe="true"
     app:sml_swipe_enable="true">
 
+    <!-- 内容View -->
     <TextView
         android:id="@+id/content_view"
         android:layout_width="match_parent"
@@ -16,6 +17,7 @@
         android:textColor="@android:color/black"
         android:textSize="18sp" />
 
+    <!-- 菜单View -->
     <com.zh.android.swipemenulayoutsample.lazymode.LazyModeEntryView
         android:id="@+id/lazy_mode_entry_view"
         android:layout_width="wrap_content"
