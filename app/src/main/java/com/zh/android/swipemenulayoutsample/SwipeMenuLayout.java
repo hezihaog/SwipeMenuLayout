@@ -66,150 +66,156 @@ public class SwipeMenuLayout extends FrameLayout {
     }
 
     private void init(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+        mViewDragHelper = ViewDragHelper.create(this, 0.5f, new ViewDragHelperCallBack());
+        initAttr(context, attrs, defStyleAttr);
+    }
+
+    private void initAttr(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.SwipeMenuLayout, defStyleAttr, 0);
         //是否左滑打开菜单
         isLeftSwipe = typedArray.getBoolean(R.styleable.SwipeMenuLayout_sml_left_swipe, true);
         //侧滑是否可用
         isSwipeEnable = typedArray.getBoolean(R.styleable.SwipeMenuLayout_sml_swipe_enable, true);
         typedArray.recycle();
-        mViewDragHelper = ViewDragHelper.create(this, 0.6f, new ViewDragHelper.Callback() {
-            /**
-             * 开始拽托时的X坐标
-             */
-            private int mDownX;
-            /**
-             * 开始拽托时的Y坐标
-             */
-            private int mDownY;
+    }
 
-            @Override
-            public boolean tryCaptureView(@NonNull View child, int pointerId) {
-                //内容区域可以拽托
-                return child == vContentView;
+    private class ViewDragHelperCallBack extends ViewDragHelper.Callback {
+        /**
+         * 开始拽托时的X坐标
+         */
+        private int mDownX;
+        /**
+         * 开始拽托时的Y坐标
+         */
+        private int mDownY;
+
+        @Override
+        public boolean tryCaptureView(@NonNull View child, int pointerId) {
+            //内容区域可以拽托
+            return child == vContentView;
+        }
+
+        @Override
+        public void onViewCaptured(@NonNull View capturedChild, int activePointerId) {
+            super.onViewCaptured(capturedChild, activePointerId);
+            mDownX = capturedChild.getLeft();
+            mDownY = capturedChild.getTop();
+        }
+
+        @Override
+        public int getViewHorizontalDragRange(@NonNull View child) {
+            //水平方向的拖拽范围
+            return vMenuView.getWidth();
+        }
+
+        @Override
+        public int clampViewPositionHorizontal(@NonNull View child, int left, int dx) {
+            //菜单区域的宽度
+            int menuViewWidth = vMenuView.getWidth();
+            if (isLeftSwipe) {
+                //不能向左滑动出界限
+                if (left > 0) {
+                    return 0;
+                } else if (left < -menuViewWidth) {
+                    //向右滑动，不能超过可滑动的距离
+                    return -menuViewWidth;
+                } else {
+                    //在上面指定范围内，可滑动
+                    return left;
+                }
+            } else {
+                if (left < 0) {
+                    return 0;
+                } else if (left > menuViewWidth) {
+                    return menuViewWidth;
+                } else {
+                    return left;
+                }
             }
+        }
 
-            @Override
-            public void onViewCaptured(@NonNull View capturedChild, int activePointerId) {
-                super.onViewCaptured(capturedChild, activePointerId);
-                mDownX = capturedChild.getLeft();
-                mDownY = capturedChild.getTop();
+        @Override
+        public void onViewPositionChanged(@NonNull View changedView, int left, int top, int dx, int dy) {
+            super.onViewPositionChanged(changedView, left, top, dx, dy);
+            //拽托内容布局，让菜单布局跟着移动
+            int newLeft = vMenuView.getLeft() + dx;
+            int right = newLeft + vMenuView.getWidth();
+            vMenuView.layout(newLeft, top, right, getBottom());
+        }
+
+        @Override
+        public void onViewDragStateChanged(int state) {
+            super.onViewDragStateChanged(state);
+            boolean isMenuOpen;
+            boolean isMenuClose;
+            int menuViewLeft = vMenuView.getLeft();
+            int menuViewWidth = vMenuView.getWidth();
+            int openMenuLeft;
+            int closeMenuLeft;
+            if (isLeftSwipe) {
+                //打开时，菜单的左边位置
+                openMenuLeft = getRight() - menuViewWidth;
+                //关闭时，菜单的左边位置
+                closeMenuLeft = getRight();
+            } else {
+                openMenuLeft = 0;
+                closeMenuLeft = -menuViewWidth;
             }
-
-            @Override
-            public int getViewHorizontalDragRange(@NonNull View child) {
-                //水平方向的拖拽范围
-                return vMenuView.getWidth();
+            isMenuOpen = menuViewLeft == openMenuLeft;
+            isMenuClose = menuViewLeft == closeMenuLeft;
+            //处理开、关菜单回调
+            if (state == ViewDragHelper.STATE_IDLE) {
+                //菜单开
+                if (isMenuOpen) {
+                    onMenuOpenFinish();
+                } else if (isMenuClose) {
+                    //菜单关
+                    onMenuCloseFinish();
+                }
             }
+        }
 
-            @Override
-            public int clampViewPositionHorizontal(@NonNull View child, int left, int dx) {
-                //菜单区域的宽度
-                int menuViewWidth = vMenuView.getWidth();
+        @Override
+        public int clampViewPositionVertical(@NonNull View child, int top, int dy) {
+            //拽托子View纵向滑动时回调，锁定顶部padding距离即可，不能不复写，否则少了顶部的padding，位置就偏去上面了
+            return 0;
+        }
+
+        @Override
+        public void onViewReleased(@NonNull View releasedChild, float xvel, float yvel) {
+            super.onViewReleased(releasedChild, xvel, yvel);
+            int contentViewWidth = vContentView.getWidth();
+            //手指释放时回调
+            final int currentLeft = releasedChild.getLeft();
+            final int currentTop = releasedChild.getTop();
+            //计算移动距离
+            int distanceX = currentLeft - mDownX;
+            int distanceY = currentTop - mDownY;
+            //松手回弹，如果右边剩余的距离大于Menu的一半，则滚动到最后边，否则滚动回最左边
+            float halfMenuWidth = vMenuView.getWidth() / 2f;
+            //判断是否是左右滑，上下滑不需要动
+            if (Math.abs(distanceX) > Math.abs(distanceY)) {
                 if (isLeftSwipe) {
-                    //不能向左滑动出界限
-                    if (left > 0) {
-                        return 0;
-                    } else if (left < -menuViewWidth) {
-                        //向右滑动，不能超过可滑动的距离
-                        return -menuViewWidth;
+                    //打开时的宽度，内容区域宽度减去一个菜单区域的宽度
+                    float fullOpenWidth = contentViewWidth - halfMenuWidth;
+                    //判断方向，向左滑动到打开，打开菜单
+                    if (releasedChild.getRight() < fullOpenWidth) {
+                        smoothOpenMenu();
                     } else {
-                        //在上面指定范围内，可滑动
-                        return left;
+                        //其他情况，关闭菜单
+                        smoothClose();
                     }
                 } else {
-                    if (left < 0) {
-                        return 0;
-                    } else if (left > menuViewWidth) {
-                        return menuViewWidth;
+                    //左滑，菜单露出超过一半，那么打开
+                    if (vMenuView.getRight() > halfMenuWidth) {
+                        smoothOpenMenu();
                     } else {
-                        return left;
+                        //没有露出一半，那么关闭
+                        smoothClose();
                     }
                 }
             }
-
-            @Override
-            public void onViewPositionChanged(@NonNull View changedView, int left, int top, int dx, int dy) {
-                super.onViewPositionChanged(changedView, left, top, dx, dy);
-                //拽托内容布局，让菜单布局跟着移动
-                int newLeft = vMenuView.getLeft() + dx;
-                int right = newLeft + vMenuView.getWidth();
-                vMenuView.layout(newLeft, top, right, getBottom());
-            }
-
-            @Override
-            public void onViewDragStateChanged(int state) {
-                super.onViewDragStateChanged(state);
-                boolean isMenuOpen;
-                boolean isMenuClose;
-                int menuViewLeft = vMenuView.getLeft();
-                int menuViewWidth = vMenuView.getWidth();
-                int openMenuLeft;
-                int closeMenuLeft;
-                if (isLeftSwipe) {
-                    //打开时，菜单的左边位置
-                    openMenuLeft = getRight() - menuViewWidth;
-                    //关闭时，菜单的左边位置
-                    closeMenuLeft = getRight();
-                } else {
-                    openMenuLeft = 0;
-                    closeMenuLeft = -menuViewWidth;
-                }
-                isMenuOpen = menuViewLeft == openMenuLeft;
-                isMenuClose = menuViewLeft == closeMenuLeft;
-                //处理开、关菜单回调
-                if (state == ViewDragHelper.STATE_IDLE) {
-                    //菜单开
-                    if (isMenuOpen) {
-                        onMenuOpenFinish();
-                    } else if (isMenuClose) {
-                        //菜单关
-                        onMenuCloseFinish();
-                    }
-                }
-            }
-
-            @Override
-            public int clampViewPositionVertical(@NonNull View child, int top, int dy) {
-                //拽托子View纵向滑动时回调，锁定顶部padding距离即可，不能不复写，否则少了顶部的padding，位置就偏去上面了
-                return 0;
-            }
-
-            @Override
-            public void onViewReleased(@NonNull View releasedChild, float xvel, float yvel) {
-                super.onViewReleased(releasedChild, xvel, yvel);
-                int contentViewWidth = vContentView.getWidth();
-                //手指释放时回调
-                final int currentLeft = releasedChild.getLeft();
-                final int currentTop = releasedChild.getTop();
-                //计算移动距离
-                int distanceX = currentLeft - mDownX;
-                int distanceY = currentTop - mDownY;
-                //松手回弹，如果右边剩余的距离大于Menu的一半，则滚动到最后边，否则滚动回最左边
-                float halfMenuWidth = vMenuView.getWidth() / 2f;
-                //判断是否是左右滑，上下滑不需要动
-                if (Math.abs(distanceX) > Math.abs(distanceY)) {
-                    if (isLeftSwipe) {
-                        //打开时的宽度，内容区域宽度减去一个菜单区域的宽度
-                        float fullOpenWidth = contentViewWidth - halfMenuWidth;
-                        //判断方向，向左滑动到打开，打开菜单
-                        if (releasedChild.getRight() < fullOpenWidth) {
-                            smoothOpenMenu();
-                        } else {
-                            //其他情况，关闭菜单
-                            smoothClose();
-                        }
-                    } else {
-                        //左滑，菜单露出超过一半，那么打开
-                        if (vMenuView.getRight() > halfMenuWidth) {
-                            smoothOpenMenu();
-                        } else {
-                            //没有露出一半，那么关闭
-                            smoothClose();
-                        }
-                    }
-                }
-            }
-        });
+        }
     }
 
     @Override
