@@ -125,10 +125,13 @@ public class SwipeMenuLayout extends FrameLayout {
                 }
             } else {
                 if (left < 0) {
+                    //向左滑动，不能滑动出左侧屏幕
                     return 0;
                 } else if (left > menuViewWidth) {
+                    //向右滑动，不能超过菜单宽度
                     return menuViewWidth;
                 } else {
+                    //其他范围可滑动
                     return left;
                 }
             }
