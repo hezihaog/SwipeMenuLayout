@@ -4,7 +4,8 @@
     android:id="@+id/swipe_menu_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    app:sml_left_swipe="true">
+    app:sml_left_swipe="true"
+    app:sml_swipe_enable="true">
 
     <TextView
         android:id="@+id/content_view"

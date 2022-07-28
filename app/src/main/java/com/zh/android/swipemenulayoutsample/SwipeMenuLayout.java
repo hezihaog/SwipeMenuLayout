@@ -47,6 +47,10 @@ public class SwipeMenuLayout extends FrameLayout {
      * 是否左滑打开菜单
      */
     private boolean isLeftSwipe;
+    /**
+     * 侧滑功能是否可用，默认开
+     */
+    private boolean isSwipeEnable = true;
 
     public SwipeMenuLayout(Context context) {
         this(context, null);
@@ -65,6 +69,8 @@ public class SwipeMenuLayout extends FrameLayout {
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.SwipeMenuLayout, defStyleAttr, 0);
         //是否左滑打开菜单
         isLeftSwipe = typedArray.getBoolean(R.styleable.SwipeMenuLayout_sml_left_swipe, true);
+        //侧滑是否可用
+        isSwipeEnable = typedArray.getBoolean(R.styleable.SwipeMenuLayout_sml_swipe_enable, true);
         typedArray.recycle();
         mViewDragHelper = ViewDragHelper.create(this, 0.6f, new ViewDragHelper.Callback() {
             /**
@@ -233,12 +239,18 @@ public class SwipeMenuLayout extends FrameLayout {
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
+        if (!isSwipeEnable) {
+            return super.onInterceptTouchEvent(ev);
+        }
         //将onInterceptTouchEvent委托给ViewDragHelper
         return mViewDragHelper.shouldInterceptTouchEvent(ev);
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (!isSwipeEnable) {
+            return super.onTouchEvent(event);
+        }
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 mDownX = event.getX();
@@ -336,5 +348,19 @@ public class SwipeMenuLayout extends FrameLayout {
      */
     public void addOnMenuStateChangeListener(OnMenuStateChangeListener listener) {
         this.mMenuStateChangeListener = listener;
+    }
+
+    /**
+     * 设置侧滑功能是否可用
+     */
+    public void setSwipeEnable(boolean swipeEnable) {
+        isSwipeEnable = swipeEnable;
+    }
+
+    /**
+     * 侧滑功能是否可用
+     */
+    public boolean isSwipeEnable() {
+        return isSwipeEnable;
     }
 }
