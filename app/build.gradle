@@ -13,11 +13,49 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    buildTypes {
+    signingConfigs {
+        debug {
+            storeFile file('../key')
+            storePassword '123456'
+            keyAlias 'key'
+            keyPassword '123456'
+        }
+
+        profile {
+            storeFile file('../key')
+            storePassword '123456'
+            keyAlias 'key'
+            keyPassword '123456'
+        }
+
         release {
+            storeFile file('../key')
+            storePassword '123456'
+            keyAlias 'key'
+            keyPassword '123456'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+
+        profile {
+            initWith debug
+            signingConfig signingConfigs.profile
+        }
+
+        release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
