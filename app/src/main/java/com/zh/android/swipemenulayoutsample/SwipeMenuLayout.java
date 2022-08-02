@@ -197,7 +197,7 @@ public class SwipeMenuLayout extends FrameLayout {
             //松手回弹，如果右边剩余的距离大于Menu的一半，则滚动到最后边，否则滚动回最左边
             float halfMenuWidth = vMenuView.getWidth() / 2f;
             //判断是否是左右滑，上下滑不需要动
-            if (Math.abs(distanceX) > Math.abs(distanceY)) {
+            if (Math.abs(distanceX) >= Math.abs(distanceY)) {
                 if (isLeftSwipe) {
                     //打开时的宽度，内容区域宽度减去一个菜单区域的宽度
                     float fullOpenWidth = contentViewWidth - halfMenuWidth;
