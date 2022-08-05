@@ -5,5 +5,12 @@
         <attr name="sml_left_swipe" format="boolean" />
         <!-- 侧滑是否可用 -->
         <attr name="sml_swipe_enable" format="boolean" />
+        <!-- 侧滑风格 -->
+        <attr name="sml_style" format="enum">
+            <!-- 菜单和内容，一起移动 -->
+            <enum name="scroll" value="1" />
+            <!-- 菜单固定，只有内容移动 -->
+            <enum name="fixed" value="2" />
+        </attr>
     </declare-styleable>
 </resources>

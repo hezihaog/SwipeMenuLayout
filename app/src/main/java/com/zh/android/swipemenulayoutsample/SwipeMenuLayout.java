@@ -5,6 +5,7 @@ import android.content.res.TypedArray;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
@@ -19,6 +20,15 @@ import androidx.customview.widget.ViewDragHelper;
  * <b>Description:</b> 侧滑菜单布局，只有内容区域和菜单区域2个子View <br>
  */
 public class SwipeMenuLayout extends FrameLayout {
+    /**
+     * 风格：菜单和内容，一起移动
+     */
+    public static final int STYLE_SCROLL = 1;
+    /**
+     * 风格：内容固定，只有菜单移动
+     */
+    public static final int STYLE_FIXED = 2;
+
     /**
      * 内容区域View
      */
@@ -51,6 +61,10 @@ public class SwipeMenuLayout extends FrameLayout {
      * 侧滑功能是否可用，默认开
      */
     private boolean isSwipeEnable = true;
+    /**
+     * 风格
+     */
+    private int mStyle;
 
     public SwipeMenuLayout(Context context) {
         this(context, null);
@@ -76,6 +90,8 @@ public class SwipeMenuLayout extends FrameLayout {
         isLeftSwipe = typedArray.getBoolean(R.styleable.SwipeMenuLayout_sml_left_swipe, true);
         //侧滑是否可用
         isSwipeEnable = typedArray.getBoolean(R.styleable.SwipeMenuLayout_sml_swipe_enable, true);
+        //风格
+        mStyle = typedArray.getInt(R.styleable.SwipeMenuLayout_sml_style, STYLE_SCROLL);
         typedArray.recycle();
     }
 
@@ -242,8 +258,18 @@ public class SwipeMenuLayout extends FrameLayout {
         if (childCount > 2 || childCount <= 0) {
             throw new RuntimeException("子View必须只有2个，内容布局和菜单布局");
         }
-        vContentView = getChildAt(0);
+        View originContentView = getChildAt(0);
         vMenuView = getChildAt(1);
+        //内容固定，菜单移动，由于ViewDragHelper需要真实的把View移动，但当风格是FIXED的时候又不能移动，所以创建一个空的View代替真实的ContentView来移动
+        if (mStyle == STYLE_FIXED) {
+            View fakeContentView = new View(getContext());
+            vContentView = fakeContentView;
+            ViewGroup.LayoutParams contentViewLp = originContentView.getLayoutParams();
+            addView(fakeContentView, new FrameLayout.LayoutParams(contentViewLp.width, contentViewLp.height));
+        } else {
+            //内容和菜单一起移动，那么拽托真实的ContentView即可
+            vContentView = originContentView;
+        }
     }
 
     @Override

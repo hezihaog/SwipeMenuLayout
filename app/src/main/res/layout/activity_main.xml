@@ -5,6 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:sml_left_swipe="true"
+    app:sml_style="fixed"
     app:sml_swipe_enable="true">
 
     <!-- 内容View -->
